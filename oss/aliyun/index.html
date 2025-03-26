@@ -55,54 +55,15 @@
                             throw new Error(`分片上传失败: HTTP ${uploadResponse.status}`)
                         }
 
-                        // 打印所有响应头，用于调试
                         const headers = uploadResponse.headers
-                        console.log('All headers:')
-                        headers.forEach((value, key) => {
-                            console.log(`${key}: ${value}`)
-                        })
-
                         // 尝试多种方式获取 ETag
-                        let eTag = headers.get('etag') ||
+                        const eTag = headers.get('etag') ||
                             headers.get('ETag') ||
                             headers.get('Etag') ||
                             headers.get('etag') ||
                             uploadResponse.headers.get('etag')
 
-                        // 如果还是获取不到，尝试从响应体中获取
-                        if (!eTag) {
-                            try {
-                                const clonedResponse = uploadResponse.clone()
-                                const text = await clonedResponse.text()
-                                console.log('Response body:', text)
-
-                                // 如果响应体中包含 ETag，尝试从中提取
-                                if (text.includes('ETag')) {
-                                    const match = text.match(/"ETag"\s*:\s*"([^"]+)"/)
-                                    if (match) {
-                                        eTag = match[1]
-                                    }
-                                }
-                            } catch (e) {
-                                console.error('Failed to read response:', e)
-                            }
-                        }
-
-                        // 如果还是没有 ETag，尝试从 content-md5 header 获取
-                        if (!eTag) {
-                            eTag = headers.get('content-md5')
-                            if (eTag) {
-                                eTag = `"${eTag}"`  // 添加引号以匹配 ETag 格式
-                            }
-                        }
-
                         console.log('Final ETag:', eTag)
-
-                        if (!eTag) {
-                            // 如果实在获取不到 ETag，可以考虑生成一个临时的
-                            eTag = `"${Math.random().toString(36).substring(7)}"`
-                            console.warn('Using generated ETag:', eTag)
-                        }
 
                         parts.push({
                             PartNumber: i + 1,
