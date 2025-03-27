@@ -94,7 +94,7 @@
                 }
 
                 const result = await completeResponse.json()
-                return result.url
+                return result.publicURL
             } catch (error) {
                 throw new Error(`上传过程出错: ${error.message}`)
             }
@@ -113,7 +113,10 @@
             try {
                 const url = await uploadFile(file)
                 progress.textContent = '上传成功'
-                alert(`上传成功，URL: ${url}`)
+                const img = document.createElement('img')
+                img.src = url
+                document.body.appendChild(img)
+                // alert(`上传成功，URL: ${url}`)
             } catch (error) {
                 progress.textContent = '上传失败'
                 alert(`上传失败: ${error.message}`)

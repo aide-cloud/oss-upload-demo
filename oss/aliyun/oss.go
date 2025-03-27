@@ -69,7 +69,7 @@ func (o *OSSClient) InitiateMultipartUpload(objectKey string) (*InitiateMultipar
 
 // generateObjectKey 生成唯一的对象键
 func generateObjectKey(originalName string) string {
-	return fmt.Sprintf("uploads_%s_%d_%s", time.Now().Format("2006_01_02"), time.Now().UnixNano(), originalName)
+	return fmt.Sprintf("uploads/%s/%d_%s", time.Now().Format("2006_01_02"), time.Now().UnixNano(), originalName)
 }
 
 // UploadPartInfo 分片上传信息
@@ -117,11 +117,13 @@ func (o *OSSClient) GenerateUploadPartURL(uploadID, objectKey string, partNumber
 
 // CompleteMultipartUploadResult 完成分片上传结果
 type CompleteMultipartUploadResult struct {
-	Location string `json:"location"`
-	Bucket   string `json:"bucket"`
-	Key      string `json:"key"`
-	ETag     string `json:"eTag"`
-	URL      string `json:"url"`
+	Location   string `json:"location"`
+	Bucket     string `json:"bucket"`
+	Key        string `json:"key"`
+	ETag       string `json:"eTag"`
+	PrivateURL string `json:"privateURL"`
+	PublicURL  string `json:"publicURL"`
+	Expiration int64  `json:"expiration"`
 }
 
 // CompleteMultipartUpload 完成分片上传
@@ -153,12 +155,35 @@ func (o *OSSClient) CompleteMultipartUpload(uploadID, objectKey string, parts []
 
 	// 生成可访问的URL
 	url := fmt.Sprintf("https://%s.%s/%s", o.config.BucketName, o.config.Endpoint, objectKey)
+	// 生成公开URL， 通过私有访问URL和密钥， 生成一个临时的公共访问URL
+	publicURL, err := o.GeneratePublicURL(objectKey, time.Second*10)
+	if err != nil {
+		return nil, fmt.Errorf("generate public URL failed: %w", err)
+	}
 
 	return &CompleteMultipartUploadResult{
-		Location: cmur.Location,
-		Bucket:   cmur.Bucket,
-		Key:      cmur.Key,
-		ETag:     cmur.ETag,
-		URL:      url,
+		Location:   cmur.Location,
+		Bucket:     cmur.Bucket,
+		Key:        cmur.Key,
+		ETag:       cmur.ETag,
+		PrivateURL: url,
+		PublicURL:  publicURL,
+		Expiration: 0,
 	}, nil
+}
+
+// GeneratePublicURL 生成公开URL
+func (o *OSSClient) GeneratePublicURL(objectKey string, exp time.Duration) (string, error) {
+	options := []oss.Option{
+		//oss.ResponseContentType("application/octet-stream"),
+		oss.ResponseContentDisposition(fmt.Sprintf("attachment; filename=\"%s\"", objectKey)),
+	}
+	// 生成签名URL，设置过期时间（例如1小时后过期）
+	expires := time.Now().Add(exp)
+	signedURL, err := o.bucket.SignURL(objectKey, oss.HTTPGet, int64(expires.Second()), options...) // 3600秒=1小时
+	if err != nil {
+		return "", err
+	}
+
+	return signedURL, nil
 }
