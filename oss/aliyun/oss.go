@@ -92,12 +92,12 @@ func (o *OSSClient) GenerateUploadPartURL(uploadID, objectKey string, partNumber
 		oss.ACReqMethod("PUT"),
 		oss.Expires(time.Now().Add(time.Duration(sec) * time.Second)),
 		oss.ContentType("application/octet-stream"),
-		oss.Origin("http://localhost:8080"),
-		oss.AddParam("response-content-type", "application/json"),
-		oss.AddParam("response-expires", "0"),
-		oss.AddParam("response-cache-control", "no-cache"),
-		oss.AddParam("response-access-control-allow-headers", "*"),
-		oss.AddParam("response-access-control-expose-headers", "ETag,x-oss-request-id"),
+		//oss.Origin("http://localhost:8080"),
+		//oss.AddParam("response-content-type", "application/json"),
+		//oss.AddParam("response-expires", "0"),
+		//oss.AddParam("response-cache-control", "no-cache"),
+		//oss.AddParam("response-access-control-allow-headers", "*"),
+		//oss.AddParam("response-access-control-expose-headers", "ETag,x-oss-request-id"),
 	}
 
 	signedURL, err := o.bucket.SignURL(objectKey, oss.HTTPPut, sec, options...)
